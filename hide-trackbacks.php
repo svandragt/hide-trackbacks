@@ -31,9 +31,6 @@ License: GPL2
 
  */
 
-/**
- * SVD_HideTrackbacks
- */
 class SVD_HideTrackbacks {
 	/**
 	 * Initialisation
