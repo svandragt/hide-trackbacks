@@ -3,7 +3,7 @@ Contributors: pacifika
 Tags: comments, trackbacks, pingbacks, trackback, spam
 Requires at least: 3.1.2
 Tested up to: 4.9.9
-Stable tag: 1.0.3
+Stable tag: 1.1.3
 
 Stops trackbacks and pingbacks from showing up as comments on posts. 
 
@@ -23,7 +23,7 @@ Original code created by  [Honey Singh](http://www.honeytechblog.com/how-to-remo
 
 == Changelog ==
 
-= 1.0.3 =
+= 1.1.3 =
 * Tested up to: 4.9.9
 * PHP compatibility
 
