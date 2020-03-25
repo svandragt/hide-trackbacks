@@ -5,12 +5,12 @@
 Plugin Name: Hide Trackbacks
 Plugin URI: http://wp.me/p1vXha-4u
 Description: Stops trackbacks and pingbacks from showing up as comments on your posts.
-Version: 1.1.3
+Version: 1.1.4
 Author: Sander van Dragt
 Author URI: https://vandragt.com
 License: GPL2
 
-	Copyright 2014-2018  Sander van Dragt  (email : sander@vandragt.com)
+	Copyright 2014-2020  Sander van Dragt  (email : sander@vandragt.com)
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License, version 2, as
