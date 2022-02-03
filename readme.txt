@@ -1,9 +1,13 @@
 === Hide Trackbacks ===
 Contributors: pacifika
-Tags: comments, trackbacks, pingbacks, trackback, pingback, spam
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
+License: GPLv2 or later
+Requires PHP: 5.6
 Requires at least: 5.8
-Tested up to: 5.9
 Stable tag: 1.2.0
+Tags: comments, trackbacks, pingbacks, trackback, pingback, spam
+Tested up to: 5.9
+
 
 Prevents trackbacks and pingbacks from showing up as comments on posts.
 
