@@ -15,10 +15,12 @@ After enabling the plugin, trackbacks and pingbacks are no longer shown on your 
 
 Original code created by  [Honey Singh](http://www.honeytechblog.com/how-to-remove-tracbacks-and-pings-from-wordpress-posts/) (used with permission of the author).
 
-== Manual Installation ==
+== Installation ==
+
+Install the plugin via the plugins tab in the admin area, or manually if you prefer:
 
 1. Upload the `hide-trackbacks` directory to `/wp-content/plugins/`.
-1. Activate the plugin through the 'Plugins' menu in WordPress.
+2. Activate the plugin through the 'Plugins' menu in WordPress.
 
 
 == Changelog ==
