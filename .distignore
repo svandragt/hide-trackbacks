@@ -1,7 +1,7 @@
-/.wordpress-org
-/.git
-/.github
-/node_modules
-
 .distignore
 .gitignore
+/.git
+/.github
+/.idea
+/.wordpress-org
+/node_modules
