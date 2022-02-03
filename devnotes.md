@@ -1,0 +1,1 @@
+* A new version is published only after a git tag is created.
