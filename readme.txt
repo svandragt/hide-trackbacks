@@ -1,27 +1,31 @@
 === Hide Trackbacks ===
 Contributors: pacifika
-Tags: comments, trackbacks, pingbacks, trackback, spam
-Requires at least: 5.0
-Tested up to: 5.4
-Stable tag: 1.1.4
+Tags: comments, trackbacks, pingbacks, trackback, pingback, spam
+Requires at least: 5.8
+Tested up to: 5.9
+Stable tag: 1.2.0
 
-Stops trackbacks and pingbacks from showing up as comments on posts. 
+Prevents trackbacks and pingbacks from showing up as comments on posts.
 
 == Description ==
 
-Introducing *Hide Trackbacks*. You can have the benefits of track/ping backs (know when someone writes about posts) whilst keeping the comments clean and uncluttered. 
+Introducing *Hide Trackbacks* - keep the benefits of track- and pingbacks (know when someone writes about posts) while keeping the comments clean and uncluttered.
 
-After enabling the plugin, trackbacks and pingbacks are no longer shown on your posts and the comment count is updated correctly to reflect this. You can still access them via the admin panel. NOTE: Although the plugin officially requires WordPress 5.0 it might very well work on older WordPress versions (if it does please let me know).
+After enabling the plugin, trackbacks and pingbacks are no longer shown on your posts and the comment count is updated correctly to reflect this. They remain accessible via the admin panel.
 
 Original code created by  [Honey Singh](http://www.honeytechblog.com/how-to-remove-tracbacks-and-pings-from-wordpress-posts/) (used with permission of the author).
 
-== Installation ==
+== Manual Installation ==
 
 1. Upload the `hide-trackbacks` directory to `/wp-content/plugins/`.
 1. Activate the plugin through the 'Plugins' menu in WordPress.
 
 
 == Changelog ==
+
+= 1.2.0 =
+* Update supported WordPress versions to 5.8+. Older versions might work.
+
 
 = 1.1.4 =
 * Tested up to: 5.4
@@ -41,4 +45,3 @@ Original code created by  [Honey Singh](http://www.honeytechblog.com/how-to-remo
 
 = 1.0 =
 * Initial version
-
