@@ -2,9 +2,9 @@
 Contributors: pacifika
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 License: GPLv2 or later
-Requires PHP: 5.6
+Requires PHP: 7.0
 Requires at least: 5.8
-Stable tag: 1.2.0
+Stable tag: 1.1.5
 Tags: comments, trackbacks, pingbacks, trackback, pingback, spam
 Tested up to: 5.9
 
@@ -29,9 +29,10 @@ Install the plugin via the plugins tab in the admin area, or manually if you pre
 
 == Changelog ==
 
-= 1.2.0 =
-* Update supported WordPress versions to 5.8+. Older versions might work.
-
+= 1.1.5 =
+* Update supported WordPress versions to 5.8+. Older versions then tested might work. Tracking the latest two versions.
+* Plugin now requires PHP 7.0+. Next version will require 7.1.
+* Iterating on a list of posts that's not an array will no longer result in a warning. Thanks @aecnews.
 
 = 1.1.4 =
 * Tested up to: 5.4
