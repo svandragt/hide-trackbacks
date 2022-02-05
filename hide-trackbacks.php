@@ -1,16 +1,15 @@
-<?php /** @noinspection MessDetectorValidationInspection */
-/** @noinspection PhpCSValidationInspection */
-/** @noinspection PhpCSValidationInspection */
+<?php /** @noinspection AutoloadingIssuesInspection */
+
 /*
 Plugin Name: Hide Trackbacks
 Plugin URI: http://wp.me/p1vXha-4u
-Description: Stops trackbacks and pingbacks from showing up as comments on your posts.
-Version: 1.1.4
+Description: Prevents trackbacks and pingbacks from showing up as comments on your posts.
+Version: 1.1.5
 Author: Sander van Dragt
 Author URI: https://vandragt.com
 License: GPL2
 
-	Copyright 2014-2020  Sander van Dragt  (email : sander@vandragt.com)
+	Copyright 2014-2022  Sander van Dragt  (email : sander@vandragt.com)
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License, version 2, as
@@ -36,15 +35,15 @@ class SVD_HideTrackbacks {
 	 * Initialisation
 	 */
 	public function __construct() {
-		add_filter( 'the_posts', array( &$this, 'update_post_comment_count' ) );
-		add_filter( 'comments_array', array( &$this, 'strip_comments' ) );
-		add_filter( 'get_comments_number', array( &$this, 'comment_count' ), 10, 0 );
+		add_filter( 'the_posts', [ &$this, 'update_post_comment_count' ] );
+		add_filter( 'comments_array', [ &$this, 'strip_comments' ] );
+		add_filter( 'get_comments_number', [ &$this, 'comment_count' ], 10, 0 );
 	}
 
 	/**
 	 * Return the correct comment count within the loop
 	 */
-	public function comment_count() {
+	public function comment_count() : int {
 		$id = get_the_ID();
 
 		return $this->_count_comments( $id );
@@ -53,11 +52,11 @@ class SVD_HideTrackbacks {
 	/**
 	 * Updates the count for comments and trackbacks
 	 *
-	 * @param $post_id
+	 * @param int $post_id
 	 *
 	 * @return int
 	 */
-	private function _count_comments( $post_id ) {
+	private function _count_comments( int $post_id ) : int {
 		$comments = get_approved_comments( $post_id );
 		$comments = $this->_strip_trackbacks( $comments );
 
@@ -72,12 +71,8 @@ class SVD_HideTrackbacks {
 	 *
 	 * @return array Filtered comments
 	 */
-	private function _strip_trackbacks( $unfiltered_comments ) {
-		if ( ! is_array( $unfiltered_comments ) ) {
-			return array();
-		}
-
-		return array_filter( $unfiltered_comments, array( &$this, 'is_strippable_comment' ) );
+	private function _strip_trackbacks( array $unfiltered_comments ) : array {
+		return array_filter( $unfiltered_comments, [ &$this, 'is_strippable_comment' ] );
 	}
 
 	/**
@@ -85,8 +80,8 @@ class SVD_HideTrackbacks {
 	 *
 	 * @return bool Is the comment a pingback or trackback
 	 */
-	public function is_strippable_comment( $comment ) {
-		return ! in_array( $comment->comment_type, array( 'trackback', 'pingback' ) );
+	public function is_strippable_comment( WP_Comment $comment ) : bool {
+		return ! in_array( $comment->comment_type, [ 'trackback', 'pingback' ] );
 	}
 
 	/**
@@ -94,7 +89,8 @@ class SVD_HideTrackbacks {
 	 *
 	 * @return array Filtered comments
 	 */
-	public function strip_comments( $comments_unfiltered ) {
+	public function strip_comments( array $comments_unfiltered ) : array {
+		//TODO test why global is used.
 		global $comments;
 		$comments = $this->_strip_trackbacks( $comments_unfiltered );
 
@@ -104,16 +100,20 @@ class SVD_HideTrackbacks {
 	/**
 	 * Updates the comment number for posts with trackbacks
 	 *
-	 * @param array $posts Array of WP_Post objects
+	 * @param mixed $maybe_posts Array of WP_Post objects
 	 *
 	 * @return array Updated array of WP_Post objects with the correct comment count
 	 */
-	public function update_post_comment_count( $posts ) {
-		foreach ( $posts as $key => $p ) {
-			if ( $p->comment_count <= 0 ) {
-				return $posts;
+	public function update_post_comment_count( $maybe_posts ) : array {
+		$posts = (array) $maybe_posts;
+		foreach ( $posts as $p ) {
+			if ( ! $p instanceof WP_Post ) {
+				continue;
 			}
-			$posts[ $key ]->comment_count = $this->_count_comments( (int) $p->ID );
+			if ( $p->comment_count < 1 ) {
+				continue;
+			}
+			$p->comment_count = $this->_count_comments( $p->ID );
 		}
 
 		return $posts;

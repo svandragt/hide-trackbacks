@@ -1,0 +1,8 @@
+.distignore
+.gitignore
+/.git
+/.github
+/.idea
+/.wordpress-org
+/node_modules
+devnotes.md
