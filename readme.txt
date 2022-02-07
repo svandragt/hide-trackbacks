@@ -29,6 +29,9 @@ Install the plugin via the plugins tab in the admin area, or manually if you pre
 
 == Changelog ==
 
+= 1.1.6 =
+* Added assets
+
 = 1.1.5 =
 * Update supported WordPress versions to 5.8+. Older versions then tested might work. Tracking the latest two versions.
 * Plugin now requires PHP 7.0+. Next version will require 7.1.
