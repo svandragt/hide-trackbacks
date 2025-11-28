@@ -4,7 +4,7 @@ License URI: https://www.gnu.org/licenses/gpl-2.0.html
 License: GPLv2 or later
 Requires PHP: 7.0
 Requires at least: 5.8
-Stable tag: 1.1.5
+Stable tag: 1.1.7
 Tags: comments, trackbacks, pingbacks, trackback, pingback, spam
 Tested up to: 6.0
 
