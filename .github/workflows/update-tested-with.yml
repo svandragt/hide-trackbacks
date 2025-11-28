@@ -16,6 +16,6 @@ jobs:
     - uses: actions/checkout@v3
     - uses: alleyinteractive/action-update-wordpress-plugin@v1
       with:
-        plugin-file: 'plugin.php'
+        plugin-file: 'hide-trackbacks.php'
         upgrade-npm-dependencies: "false"
         
