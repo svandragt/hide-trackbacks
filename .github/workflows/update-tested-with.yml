@@ -19,3 +19,4 @@ jobs:
         with:
           plugin-file: 'hide-trackbacks.php'
           upgrade-npm-dependencies: "false"
+          node-version: '24'
