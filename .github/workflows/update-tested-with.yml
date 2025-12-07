@@ -4,6 +4,7 @@ on:
   pull_request:
   schedule:
     - cron: '0 */6 * * *'
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -13,9 +14,8 @@ jobs:
   update-plugin:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - uses: alleyinteractive/action-update-wordpress-plugin@v2
-      with:
-        plugin-file: 'hide-trackbacks.php'
-        upgrade-npm-dependencies: "false"
-        
+      - uses: actions/checkout@v3
+      - uses: alleyinteractive/action-update-wordpress-plugin@v2
+        with:
+          plugin-file: 'hide-trackbacks.php'
+          upgrade-npm-dependencies: "false"
