@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    - uses: alleyinteractive/action-update-wordpress-plugin@v1
+    - uses: alleyinteractive/action-update-wordpress-plugin@v2
       with:
         plugin-file: 'hide-trackbacks.php'
         upgrade-npm-dependencies: "false"
