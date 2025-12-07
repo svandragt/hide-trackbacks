@@ -19,4 +19,4 @@ jobs:
         with:
           plugin-file: 'hide-trackbacks.php'
           upgrade-npm-dependencies: "false"
-          node-version: '24'
+          node-version: '24' #lts doesn't work 2025-12-07
