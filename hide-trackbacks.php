@@ -4,7 +4,7 @@
 Plugin Name: Hide Trackbacks
 Plugin URI: http://wp.me/p1vXha-4u
 Description: Prevents trackbacks and pingbacks from showing up as comments on your posts.
-Version: 1.1.7
+Version: 1.1.8
 Author: Sander van Dragt
 Author URI: https://vandragt.com
 Requires at least: 5.8
