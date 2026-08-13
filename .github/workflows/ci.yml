@@ -41,6 +41,28 @@ jobs:
       - name: Check compatibility with PHP 7.4+
         run: phpcs -p . --extensions=php --standard=PHPCompatibilityWP --runtime-set testVersion 7.4-
 
+  # Branch protection on master requires a status check named "test", which was the
+  # single job name this workflow used before it was split into the three above.
+  # Renaming them left that requirement permanently unsatisfiable, which blocks
+  # every push to master. This restores it as an aggregate over the real jobs, so
+  # the requirement means "everything passed" rather than naming one of them.
+  #
+  # if: always() with explicit result checks, because a skipped job can count as a
+  # satisfied required check - a gate that skips on failure is not a gate.
+  test:
+    needs: [lint, compatibility, plugin-check]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every check to have passed
+        run: |
+          echo "lint=${{ needs.lint.result }}"
+          echo "compatibility=${{ needs.compatibility.result }}"
+          echo "plugin-check=${{ needs['plugin-check'].result }}"
+          [ "${{ needs.lint.result }}" = "success" ] || exit 1
+          [ "${{ needs.compatibility.result }}" = "success" ] || exit 1
+          [ "${{ needs['plugin-check'].result }}" = "success" ] || exit 1
+
   plugin-check:
     name: WordPress Plugin Check
     runs-on: ubuntu-latest
