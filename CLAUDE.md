@@ -57,8 +57,10 @@ There is no test suite, and CI checks syntax and API compatibility only — neve
 
 Versions are published to WordPress.org by CI, not manually:
 
-- Push to `master` → `on-master-asset-update.yml` syncs `readme.txt` and `.wordpress-org/` assets to SVN trunk.
+- Push to `master` → `on-master-asset-update.yml` syncs `readme.txt` and `.wordpress-org/` assets to SVN trunk. It does **not** sync plugin code.
 - Push a git tag → `on-tag-deploy.yml` deploys that tag as a new plugin release. **A new version only ships when a tag is created.**
+
+Because only a tag deploys code, `master` normally carries plugin code the trunk has not received. The asset-update action treats that as a reason to abort (`🛑 Other files have been modified; changes not deployed`), so both workflows that call it set `IGNORE_OTHER_FILES: true`. Without it, readme updates stay blocked for the entire gap between merging a code change and tagging a release.
 
 So a release change means updating, in lockstep: the `Version:` header in `hide-trackbacks.php`, `Stable tag:` in `readme.txt`, a new `== Changelog ==` entry, and then a matching git tag.
 

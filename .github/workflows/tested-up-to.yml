@@ -104,3 +104,6 @@ jobs:
         env:
           SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
           SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+          # Required, or this step fails for every week that master carries plugin
+          # code the trunk has not received yet. See on-master-asset-update.yml.
+          IGNORE_OTHER_FILES: true

@@ -14,3 +14,10 @@ jobs:
       env:
         SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
         SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+        # Without this the action refuses to sync whenever a file other than the
+        # readme or assets differs from trunk ("Other files have been modified;
+        # changes not deployed"). That is the normal state of master between
+        # releases - it carries plugin code the trunk has not received yet, since
+        # only a tag deploys code - so readme updates would be blocked for the
+        # entire gap. Assets and readme are all this workflow is meant to touch.
+        IGNORE_OTHER_FILES: true
