@@ -46,6 +46,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+
+      # Check what users actually download, not the repository. Pointed at the repo
+      # root, Plugin Check judges files .distignore keeps out of the package - the
+      # "#" in the .wordpress-org art sources, .github, CLAUDE.md, dotfiles - and
+      # reports problems that cannot reach anybody.
+      - name: Build the distributable package
+        run: |
+          set -euo pipefail
+          mkdir -p build/hide-trackbacks
+          git archive HEAD | tar -x -C build/hide-trackbacks
+          # .distignore holds literal paths, root-anchored with a leading slash.
+          while IFS= read -r pattern || [ -n "$pattern" ]; do
+            case "$pattern" in ''|\#*) continue ;; esac
+            rm -rf "build/hide-trackbacks/${pattern#/}"
+          done < .distignore
+          echo "Package contents:"
+          find build/hide-trackbacks -mindepth 1
+
       - uses: wordpress/plugin-check-action@v1
         with:
-          build-dir: './'
+          build-dir: ./build/hide-trackbacks
+          slug: hide-trackbacks

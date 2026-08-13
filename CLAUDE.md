@@ -23,6 +23,11 @@ composer global require dealerdirect/phpcodesniffer-composer-installer phpcompat
 
 # 3. The official WordPress.org Plugin Check (headers, readme.txt, deprecated WP APIs)
 #    runs via wordpress/plugin-check-action; easiest to read from the CI log.
+#    CI first builds the package .distignore describes and checks *that*, so the
+#    check sees what users download. Reproduce the package locally with:
+mkdir -p build/hide-trackbacks && git archive HEAD | tar -x -C build/hide-trackbacks
+while IFS= read -r p || [ -n "$p" ]; do case "$p" in ''|\#*) continue ;; esac; \
+  rm -rf "build/hide-trackbacks/${p#/}"; done < .distignore
 ```
 
 `tested-up-to.yml` runs weekly, bumping `Tested up to:` in `readme.txt` from api.wordpress.org. It opens a pull request, merges it, and syncs to WordPress.org in a single unattended run. Plugins untested against recent major releases get de-emphasised in the directory.
@@ -57,6 +62,11 @@ Versions are published to WordPress.org by CI, not manually:
 
 So a release change means updating, in lockstep: the `Version:` header in `hide-trackbacks.php`, `Stable tag:` in `readme.txt`, a new `== Changelog ==` entry, and then a matching git tag.
 
-**Do not raise `Stable tag:` until the matching tag is actually pushed.** Merging to `master` syncs `readme.txt` to trunk immediately, and WordPress.org reads `Stable tag` from trunk — so a `Stable tag` pointing at a tag that does not exist in SVN yet breaks downloads for every user. Unreleased work therefore sits on `master` with `Version:` ahead of `Stable tag:`, which is the expected state, not drift to "fix".
+Two rules keep that safe, and they pull in opposite directions:
+
+- **Do not raise `Stable tag:` before the matching tag is pushed.** Merging to `master` syncs `readme.txt` to trunk immediately, and WordPress.org reads `Stable tag` from trunk — so a `Stable tag` naming a tag absent from SVN breaks downloads for every user.
+- **Do not raise `Version:` on its own either.** Plugin Check enforces `Version` == `Stable tag` and fails the build on a mismatch.
+
+So the version bump belongs to the release commit and nowhere else: raise both lines together, then push the tag. Ordinary fixes land on `master` at the *current* version, which costs nothing — only a tag deploys plugin code, so `master` running ahead of the released version is invisible to users. `readme.txt` may carry a `== Changelog ==` entry for the next version before that version exists; nothing checks changelog headings against `Version`.
 
 `readme.txt` is the WordPress.org plugin page (its own markup dialect, not Markdown) and also declares compatibility: `Requires PHP`, `Requires at least`, `Tested up to`. `.distignore` controls what is excluded from the deployed package.
