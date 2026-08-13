@@ -1,0 +1,118 @@
+name: Release
+
+# Publishes a new version to WordPress.org from a manual dispatch.
+#
+# This exists because the release steps have ordering rules that are easy to get
+# wrong by hand: Version and Stable tag must move together, Stable tag must never
+# name a version absent from SVN, and only a tag ships plugin code. Encoding them
+# once means a release is a single button press.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release, e.g. 1.1.8. Needs a matching changelog entry in readme.txt.'
+        required: true
+        type: string
+      dry_run:
+        description: 'Rehearse only: no WordPress.org commit, no git push.'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+
+jobs:
+  release:
+    name: Release to WordPress.org
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: master
+          fetch-depth: 0 # tags, so an existing release can be detected
+
+      - name: Validate the requested version
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          case "$VERSION" in
+            [0-9]*.[0-9]*) ;;
+            *) echo "::error::Version '$VERSION' is not of the form N.N or N.N.N"; exit 1 ;;
+          esac
+          if git rev-parse -q --verify "refs/tags/$VERSION" >/dev/null 2>&1; then
+            echo "::error::Tag $VERSION already exists. A published release cannot be replaced - choose a new version."
+            exit 1
+          fi
+          if ! grep -q "^= $VERSION =$" readme.txt; then
+            echo "::error::readme.txt has no '= $VERSION =' changelog entry. Add one before releasing."
+            exit 1
+          fi
+          echo "Releasing $VERSION (from $(sed -n 's/^Version: *//p' hide-trackbacks.php | head -1))"
+
+      - name: Bump Version and Stable tag
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          sed -i "s/^Version:.*/Version: $VERSION/" hide-trackbacks.php
+          sed -i "s/^Stable tag:.*/Stable tag: $VERSION/" readme.txt
+          # Both, or neither: Plugin Check enforces that they match, and a Stable tag
+          # naming a version that is not in SVN breaks downloads for every user.
+          v="$(sed -n 's/^Version: *//p' hide-trackbacks.php | head -1)"
+          s="$(sed -n 's/^Stable tag: *//p' readme.txt | head -1)"
+          if [ "$v" != "$VERSION" ] || [ "$s" != "$VERSION" ]; then
+            echo "::error::Bump did not apply cleanly (Version=$v, Stable tag=$s)"; exit 1
+          fi
+          php -l hide-trackbacks.php
+
+      # Deploy before touching git, deliberately. This creates the SVN tag and
+      # updates the trunk together, so WordPress.org is never left advertising a
+      # version it cannot serve. If it fails, nothing has been pushed and the run
+      # can simply be repeated.
+      #
+      # on-tag-deploy.yml is not used here: a tag pushed with GITHUB_TOKEN does not
+      # start workflow runs, so it would never fire. VERSION is passed explicitly
+      # because a dispatched run has no tag ref to derive it from.
+      - name: Deploy to WordPress.org
+        uses: 10up/action-wordpress-plugin-deploy@stable
+        with:
+          dry-run: ${{ inputs.dry_run }}
+        env:
+          SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+          SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
+          VERSION: ${{ inputs.version }}
+
+      - name: Commit the release and tag it
+        if: ${{ !inputs.dry_run }}
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -am "Release $VERSION"
+          git tag -a "$VERSION" -m "Hide Trackbacks $VERSION"
+          git push origin HEAD:master
+          git push origin "refs/tags/$VERSION"
+
+      - name: Summary
+        if: always()
+        env:
+          VERSION: ${{ inputs.version }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          {
+            if [ "$DRY_RUN" = "true" ]; then
+              echo "### Rehearsed $VERSION (dry run)"
+              echo "Nothing was published and nothing was pushed."
+            else
+              echo "### Released $VERSION"
+              echo "- WordPress.org trunk and tag $VERSION updated"
+              echo "- \`master\` bumped and tagged \`$VERSION\`"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
