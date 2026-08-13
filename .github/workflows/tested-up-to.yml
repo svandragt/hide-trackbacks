@@ -10,7 +10,10 @@ name: Bump tested WordPress version
 
 on:
   schedule:
-    - cron: '0 6 1 * *'
+    # Weekly, because sites take up the new WordPress version quickly and the
+    # readme should not lag behind what people are already running. A run that
+    # finds nothing to do is one API call and exits, so the frequency is cheap.
+    - cron: '0 6 * * 1'
   workflow_dispatch: {}
 
 permissions:

@@ -25,7 +25,7 @@ composer global require dealerdirect/phpcodesniffer-composer-installer phpcompat
 #    runs via wordpress/plugin-check-action; easiest to read from the CI log.
 ```
 
-`tested-up-to.yml` runs monthly, bumping `Tested up to:` in `readme.txt` from api.wordpress.org. It opens a pull request, merges it, and syncs to WordPress.org in a single unattended run. Plugins untested against recent major releases get de-emphasised in the directory.
+`tested-up-to.yml` runs weekly, bumping `Tested up to:` in `readme.txt` from api.wordpress.org. It opens a pull request, merges it, and syncs to WordPress.org in a single unattended run. Plugins untested against recent major releases get de-emphasised in the directory.
 
 Two constraints explain why it looks the way it does, and both bite any future automation here:
 
