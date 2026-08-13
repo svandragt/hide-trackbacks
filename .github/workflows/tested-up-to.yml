@@ -2,7 +2,9 @@ name: Bump tested WordPress version
 
 # WordPress.org de-emphasises plugins that are not tested against recent major
 # releases, so this is the one piece of upkeep that has a visible consequence.
-# Deliberately dependency-free: the previous attempt at this used an action that
+# Fully hands-off by design: it commits the bump itself rather than opening a PR.
+#
+# Deliberately dependency-free. The previous attempt at this used an action that
 # required npm dependency updates, which this plugin does not have.
 
 on:
@@ -12,14 +14,18 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
+
+concurrency:
+  group: tested-up-to
 
 jobs:
   bump:
-    name: Open a readme bump PR
+    name: Bump readme and sync to WordPress.org
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: master
 
       - name: Look up the current WordPress version
         id: wp
@@ -28,6 +34,8 @@ jobs:
           payload="$(curl -fsSL 'https://api.wordpress.org/core/version-check/1.7/')"
           full="$(printf '%s' "$payload" | php -r 'echo json_decode(stream_get_contents(STDIN), true)["offers"][0]["current"] ?? "";')"
           version="$(printf '%s' "$full" | cut -d. -f1,2)"
+          # Refuse to write anything that is not a plausible version, so an API
+          # change or an empty response fails the run instead of corrupting readme.txt.
           case "$version" in
             [0-9]*.[0-9]*) ;;
             *) echo "Unexpected version in API response: '$full'" >&2; exit 1 ;;
@@ -49,16 +57,24 @@ jobs:
           sed -i "s/^Tested up to:.*/Tested up to: $VERSION/" readme.txt
           echo "changed=true" >> "$GITHUB_OUTPUT"
 
-      - name: Open pull request
+      - name: Commit the bump
         if: steps.bump.outputs.changed == 'true'
-        uses: peter-evans/create-pull-request@v7
-        with:
-          branch: chore/tested-up-to
-          title: 'Update tested WordPress version to ${{ steps.wp.outputs.version }}'
-          commit-message: 'chore: tested up to WordPress ${{ steps.wp.outputs.version }}'
-          body: |
-            Automated bump of `Tested up to:` in `readme.txt` to WordPress ${{ steps.wp.outputs.version }}.
+        env:
+          VERSION: ${{ steps.wp.outputs.version }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -am "chore: tested up to WordPress $VERSION"
+          git push origin HEAD:master
 
-            Merging into `master` syncs the readme to the WordPress.org trunk, which is
-            what the plugin directory displays. Shipping a new plugin *version* still
-            requires a git tag.
+      # A push made with GITHUB_TOKEN does not start new workflow runs, so
+      # on-master-asset-update.yml will NOT fire for the commit above. Sync the
+      # readme to the WordPress.org trunk here instead - without this the bump
+      # lands in git and never reaches the plugin directory, which is the whole point.
+      - name: Sync readme to the WordPress.org trunk
+        if: steps.bump.outputs.changed == 'true'
+        uses: 10up/action-wordpress-plugin-asset-update@stable
+        env:
+          SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
+          SVN_USERNAME: ${{ secrets.SVN_USERNAME }}

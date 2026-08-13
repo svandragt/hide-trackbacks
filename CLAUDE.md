@@ -25,7 +25,9 @@ composer global require dealerdirect/phpcodesniffer-composer-installer phpcompat
 #    runs via wordpress/plugin-check-action; easiest to read from the CI log.
 ```
 
-`tested-up-to.yml` opens a monthly PR bumping `Tested up to:` in `readme.txt` from api.wordpress.org. Plugins untested against recent major releases get de-emphasised in the directory, so let these through.
+`tested-up-to.yml` runs monthly, bumping `Tested up to:` in `readme.txt` from api.wordpress.org, committing to `master` and syncing to WordPress.org unattended. Plugins untested against recent major releases get de-emphasised in the directory.
+
+It syncs to the trunk itself rather than leaving that to `on-master-asset-update.yml`, because **a push made with `GITHUB_TOKEN` does not start new workflow runs** — the `push: master` trigger will not fire for a commit created by a workflow. Any future automation that commits to `master` and expects the wp.org sync to follow needs to account for the same thing.
 
 ## Architecture
 
