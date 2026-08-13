@@ -8,10 +8,24 @@ A single-file WordPress plugin (`hide-trackbacks.php`) published on WordPress.or
 
 ## Commands
 
+There is no test suite. CI (`ci.yml`) runs three checks, all reproducible locally:
+
 ```bash
-# The only check CI runs: PHP syntax lint over every file
+# 1. Syntax lint (CI runs this on PHP 7.4, 8.1, 8.2, 8.3, 8.4)
 find . -name '*.php' -print0 | xargs -0 -n1 php -l
+
+# 2. Removed/deprecated PHP APIs — what php -l cannot see.
+#    testVersion must stay in step with "Requires PHP" in readme.txt.
+composer global config --no-plugins allow-plugins.dealerdirect/phpcodesniffer-composer-installer true
+composer global require dealerdirect/phpcodesniffer-composer-installer phpcompatibility/phpcompatibility-wp
+"$(composer global config bin-dir --absolute | tail -1)"/phpcs -p . --extensions=php \
+  --standard=PHPCompatibilityWP --runtime-set testVersion 7.4-
+
+# 3. The official WordPress.org Plugin Check (headers, readme.txt, deprecated WP APIs)
+#    runs via wordpress/plugin-check-action; easiest to read from the CI log.
 ```
+
+`tested-up-to.yml` opens a monthly PR bumping `Tested up to:` in `readme.txt` from api.wordpress.org. Plugins untested against recent major releases get de-emphasised in the directory, so let these through.
 
 ## Architecture
 
@@ -33,5 +47,7 @@ Versions are published to WordPress.org by CI, not manually:
 - Push a git tag → `on-tag-deploy.yml` deploys that tag as a new plugin release. **A new version only ships when a tag is created.**
 
 So a release change means updating, in lockstep: the `Version:` header in `hide-trackbacks.php`, `Stable tag:` in `readme.txt`, a new `== Changelog ==` entry, and then a matching git tag.
+
+**Do not raise `Stable tag:` until the matching tag is actually pushed.** Merging to `master` syncs `readme.txt` to trunk immediately, and WordPress.org reads `Stable tag` from trunk — so a `Stable tag` pointing at a tag that does not exist in SVN yet breaks downloads for every user. Unreleased work therefore sits on `master` with `Version:` ahead of `Stable tag:`, which is the expected state, not drift to "fix".
 
 `readme.txt` is the WordPress.org plugin page (its own markup dialect, not Markdown) and also declares compatibility: `Requires PHP`, `Requires at least`, `Tested up to`. `.distignore` controls what is excluded from the deployed package.

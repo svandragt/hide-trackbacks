@@ -1,0 +1,64 @@
+name: Bump tested WordPress version
+
+# WordPress.org de-emphasises plugins that are not tested against recent major
+# releases, so this is the one piece of upkeep that has a visible consequence.
+# Deliberately dependency-free: the previous attempt at this used an action that
+# required npm dependency updates, which this plugin does not have.
+
+on:
+  schedule:
+    - cron: '0 6 1 * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  bump:
+    name: Open a readme bump PR
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Look up the current WordPress version
+        id: wp
+        run: |
+          set -euo pipefail
+          payload="$(curl -fsSL 'https://api.wordpress.org/core/version-check/1.7/')"
+          full="$(printf '%s' "$payload" | php -r 'echo json_decode(stream_get_contents(STDIN), true)["offers"][0]["current"] ?? "";')"
+          version="$(printf '%s' "$full" | cut -d. -f1,2)"
+          case "$version" in
+            [0-9]*.[0-9]*) ;;
+            *) echo "Unexpected version in API response: '$full'" >&2; exit 1 ;;
+          esac
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Update readme.txt
+        id: bump
+        env:
+          VERSION: ${{ steps.wp.outputs.version }}
+        run: |
+          set -euo pipefail
+          current="$(sed -n 's/^Tested up to: *//p' readme.txt | head -1)"
+          if [ "$current" = "$VERSION" ]; then
+            echo "Already tested up to $VERSION, nothing to do."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          sed -i "s/^Tested up to:.*/Tested up to: $VERSION/" readme.txt
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Open pull request
+        if: steps.bump.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: chore/tested-up-to
+          title: 'Update tested WordPress version to ${{ steps.wp.outputs.version }}'
+          commit-message: 'chore: tested up to WordPress ${{ steps.wp.outputs.version }}'
+          body: |
+            Automated bump of `Tested up to:` in `readme.txt` to WordPress ${{ steps.wp.outputs.version }}.
+
+            Merging into `master` syncs the readme to the WordPress.org trunk, which is
+            what the plugin directory displays. Shipping a new plugin *version* still
+            requires a git tag.
