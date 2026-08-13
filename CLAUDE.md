@@ -25,9 +25,12 @@ composer global require dealerdirect/phpcodesniffer-composer-installer phpcompat
 #    runs via wordpress/plugin-check-action; easiest to read from the CI log.
 ```
 
-`tested-up-to.yml` runs monthly, bumping `Tested up to:` in `readme.txt` from api.wordpress.org, committing to `master` and syncing to WordPress.org unattended. Plugins untested against recent major releases get de-emphasised in the directory.
+`tested-up-to.yml` runs monthly, bumping `Tested up to:` in `readme.txt` from api.wordpress.org. It opens a pull request, merges it, and syncs to WordPress.org in a single unattended run. Plugins untested against recent major releases get de-emphasised in the directory.
 
-It syncs to the trunk itself rather than leaving that to `on-master-asset-update.yml`, because **a push made with `GITHUB_TOKEN` does not start new workflow runs** — the `push: master` trigger will not fire for a commit created by a workflow. Any future automation that commits to `master` and expects the wp.org sync to follow needs to account for the same thing.
+Two constraints explain why it looks the way it does, and both bite any future automation here:
+
+- **`GITHUB_TOKEN` activity does not start new workflow runs.** No checks report on a pull request the workflow opened, so `gh pr merge --auto` would queue behind required checks that never arrive; and the merge does not fire `on-master-asset-update.yml`, so the workflow pushes to the trunk itself. Without that, a bump lands in git and never reaches the plugin directory.
+- **Merge method.** It uses `--merge`, matching `dependabot-auto-merge.yml`, so it relies on a method already known to be enabled on the repository.
 
 ## Architecture
 
