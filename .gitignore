@@ -1,0 +1,11 @@
+# IDE
+/.idea/
+/.vscode/
+
+# Dependencies (not used by the plugin itself, only by local tooling)
+/node_modules/
+/vendor/
+
+# OS
+.DS_Store
+Thumbs.db

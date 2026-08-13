@@ -4,9 +4,67 @@ on:
     branches: [master]
   pull_request: {}
 jobs:
-  test:
+  lint:
+    name: Lint (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['7.4', '8.1', '8.2', '8.3', '8.4']
+    steps:
+      - uses: actions/checkout@v7
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+      - name: Lint PHP files
+        run: find . -name '*.php' -print0 | xargs -0 -n1 php -l
+
+  compatibility:
+    name: PHP compatibility
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - name: Lint PHP files
-        run: find . -name '*.php' -print0 | xargs -0 -n1 php -l
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+      - name: Install PHPCS and PHPCompatibilityWP
+        run: |
+          composer global config --no-plugins allow-plugins.dealerdirect/phpcodesniffer-composer-installer true
+          composer global require --no-interaction --no-progress \
+            dealerdirect/phpcodesniffer-composer-installer \
+            phpcompatibility/phpcompatibility-wp
+          composer global config bin-dir --absolute | tail -1 >> "$GITHUB_PATH"
+      # Catches removed and deprecated PHP APIs, which php -l cannot see.
+      # Keep testVersion in step with "Requires PHP" in readme.txt.
+      - name: Check compatibility with PHP 7.4+
+        run: phpcs -p . --extensions=php --standard=PHPCompatibilityWP --runtime-set testVersion 7.4-
+
+  plugin-check:
+    name: WordPress Plugin Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # Check what users actually download, not the repository. Pointed at the repo
+      # root, Plugin Check judges files .distignore keeps out of the package - the
+      # "#" in the .wordpress-org art sources, .github, CLAUDE.md, dotfiles - and
+      # reports problems that cannot reach anybody.
+      - name: Build the distributable package
+        run: |
+          set -euo pipefail
+          mkdir -p build/hide-trackbacks
+          git archive HEAD | tar -x -C build/hide-trackbacks
+          # .distignore holds literal paths, root-anchored with a leading slash.
+          while IFS= read -r pattern || [ -n "$pattern" ]; do
+            case "$pattern" in ''|\#*) continue ;; esac
+            rm -rf "build/hide-trackbacks/${pattern#/}"
+          done < .distignore
+          echo "Package contents:"
+          find build/hide-trackbacks -mindepth 1
+
+      - uses: wordpress/plugin-check-action@v1
+        with:
+          build-dir: ./build/hide-trackbacks
+          slug: hide-trackbacks

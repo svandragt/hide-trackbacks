@@ -7,7 +7,10 @@ Description: Prevents trackbacks and pingbacks from showing up as comments on yo
 Version: 1.1.7
 Author: Sander van Dragt
 Author URI: https://vandragt.com
+Requires at least: 5.8
+Requires PHP: 7.4
 License: GPL2
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 	Copyright 2014-2022  Sander van Dragt  (email : sander@vandragt.com)
 
@@ -30,37 +33,71 @@ License: GPL2
 
  */
 
+// No direct access.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 class SVD_HideTrackbacks {
+	/**
+	 * Per-request cache of filtered comment counts, keyed by post ID.
+	 *
+	 * @var int[]
+	 */
+	private $counts = [];
+
 	/**
 	 * Initialisation
 	 */
 	public function __construct() {
-		add_filter( 'the_posts', [ &$this, 'update_post_comment_count' ] );
-		add_filter( 'comments_array', [ &$this, 'strip_comments' ] );
-		add_filter( 'get_comments_number', [ &$this, 'comment_count' ], 10, 0 );
+		add_filter( 'the_posts', [ $this, 'update_post_comment_count' ] );
+		add_filter( 'comments_array', [ $this, 'strip_comments' ] );
+		add_filter( 'get_comments_number', [ $this, 'comment_count' ], 10, 2 );
 	}
 
 	/**
-	 * Return the correct comment count within the loop
+	 * Return the correct comment count for a post
+	 *
+	 * The get_comments_number filter passes the post ID, which is authoritative.
+	 * get_the_ID() is only a fallback for the in-loop case, and returns false
+	 * outside of it - hence the guard, without which counts render as zero.
+	 *
+	 * @param mixed $count   Comment count as calculated by WordPress
+	 * @param mixed $post_id Post the count belongs to
+	 *
+	 * @return int
 	 */
-	public function comment_count() : int {
-		$id = get_the_ID();
+	public function comment_count( $count = 0, $post_id = 0 ) : int {
+		$post_id = (int) ( $post_id ?: get_the_ID() );
+		if ( $post_id < 1 ) {
+			return (int) $count;
+		}
 
-		return $this->_count_comments( $id );
+		return $this->_count_comments( $post_id );
 	}
 
 	/**
 	 * Updates the count for comments and trackbacks
+	 *
+	 * Memoised: this filter fires once per template call, and update_post_comment_count()
+	 * calls it for every post in every query, so an uncached lookup here means an extra
+	 * comment query per post per page.
 	 *
 	 * @param int $post_id
 	 *
 	 * @return int
 	 */
 	private function _count_comments( int $post_id ) : int {
+		if ( isset( $this->counts[ $post_id ] ) ) {
+			return $this->counts[ $post_id ];
+		}
+
 		$comments = get_approved_comments( $post_id );
 		$comments = $this->_strip_trackbacks( $comments );
 
-		return count( $comments );
+		$this->counts[ $post_id ] = count( $comments );
+
+		return $this->counts[ $post_id ];
 	}
 
 	/**
@@ -72,27 +109,46 @@ class SVD_HideTrackbacks {
 	 * @return array Filtered comments
 	 */
 	private function _strip_trackbacks( array $unfiltered_comments ) : array {
-		return array_filter( $unfiltered_comments, [ &$this, 'is_strippable_comment' ] );
+		return array_filter( $unfiltered_comments, [ $this, 'is_strippable_comment' ] );
 	}
 
 	/**
-	 * @param WP_Comment $comment The comment to test
+	 * Despite the name, this returns true for comments that are KEPT - it is the
+	 * array_filter() callback used by _strip_trackbacks(). The name is retained
+	 * because the method is public and may be unhooked by other code.
 	 *
-	 * @return bool Is the comment a pingback or trackback
+	 * Deliberately untyped: comments_array is a public filter, so the array may
+	 * contain whatever other plugins put there. A WP_Comment type declaration here
+	 * would turn that into a fatal TypeError on the front end. Anything we cannot
+	 * identify is left visible rather than hidden.
+	 *
+	 * @param mixed $comment The comment to test
+	 *
+	 * @return bool True when the comment is neither a pingback nor a trackback
 	 */
-	public function is_strippable_comment( WP_Comment $comment ) : bool {
-		return ! in_array( $comment->comment_type, [ 'trackback', 'pingback' ] );
+	public function is_strippable_comment( $comment ) : bool {
+		if ( is_object( $comment ) ) {
+			$type = $comment->comment_type ?? '';
+		} elseif ( is_array( $comment ) ) {
+			$type = $comment['comment_type'] ?? '';
+		} else {
+			$type = '';
+		}
+
+		return ! in_array( $type, [ 'trackback', 'pingback' ], true );
 	}
 
 	/**
-	 * @param array $comments_unfiltered Unfiltered comments
+	 * @param mixed $comments_unfiltered Unfiltered comments
 	 *
 	 * @return array Filtered comments
 	 */
-	public function strip_comments( array $comments_unfiltered ) : array {
+	public function strip_comments( $comments_unfiltered ) : array {
 		//TODO test why global is used.
 		global $comments;
-		$comments = $this->_strip_trackbacks( $comments_unfiltered );
+		// array_values() because array_filter() preserves keys, and templates that
+		// index the comment list numerically choke on the resulting gaps.
+		$comments = array_values( $this->_strip_trackbacks( (array) $comments_unfiltered ) );
 
 		return $comments;
 	}

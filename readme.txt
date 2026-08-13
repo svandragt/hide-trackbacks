@@ -2,11 +2,11 @@
 Contributors: pacifika
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 License: GPLv2 or later
-Requires PHP: 7.0
+Requires PHP: 7.4
 Requires at least: 5.8
 Stable tag: 1.1.7
 Tags: comments, trackback, pingback, spam
-Tested up to: 6.9
+Tested up to: 7.0
 
 
 Prevents trackbacks and pingbacks from showing up as comments on posts.
@@ -28,6 +28,15 @@ Install the plugin via the plugins tab in the admin area, or manually if you pre
 
 
 == Changelog ==
+
+= 1.1.8 =
+* Comment counts are now correct outside the main loop (widgets, blocks and secondary queries previously showed zero).
+* Comment counts are cached per request, removing a repeated comment query for every post in every query.
+* Trackback filtering no longer assumes every entry in the comment list is a WP_Comment object, which could cause a fatal error when combined with other comment plugins.
+* Plugin now requires PHP 7.4+ and declares its WordPress and PHP requirements to WordPress directly.
+
+= 1.1.7 =
+* Maintenance release: release automation and readme updates only, no functional changes.
 
 = 1.1.6 =
 * Added assets
