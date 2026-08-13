@@ -42,7 +42,11 @@ Two constraints explain why it looks the way it does, and both bite any future a
 
 All three funnel into `_count_comments()` / `_strip_trackbacks()`, which re-query via `get_approved_comments()` and filter on `comment_type`. Any change to what counts as "strippable" belongs in `is_strippable_comment()` only — the rest derives from it.
 
-Note: `strip_comments()` also assigns to the `global $comments`; `devnotes.md` flags this as unexplained legacy behaviour, so leave it in place unless deliberately investigating it.
+Note: `strip_comments()` also assigns to the `global $comments`. The inline `//TODO test why global is used.` marks this as unexplained legacy behaviour, so leave it in place unless deliberately investigating it.
+
+## Verifying by hand
+
+There is no test suite, and CI checks syntax and API compatibility only — never behaviour. Manual verification needs a WordPress install with a post that carries real pingbacks and trackbacks. Be aware that the plugin's author was never able to get trackbacks to display even with the plugin disabled, so **"no trackbacks visible" is not by itself evidence that the plugin works** — confirm the post genuinely has some first, via the admin comment list.
 
 ## Release process
 
