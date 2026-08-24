@@ -6,7 +6,7 @@ Requires PHP: 7.4
 Requires at least: 5.8
 Stable tag: 1.1.8
 Tags: comments, trackback, pingback, spam
-Tested up to: 7.0
+Tested up to: 7.1
 
 
 Prevents trackbacks and pingbacks from showing up as comments on posts.
