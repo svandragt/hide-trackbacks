@@ -101,4 +101,4 @@ jobs:
               --title "Update tested WordPress version to $VERSION" \
               --body "Automated bump of the 'Tested up to' field in readme.txt to WordPress $VERSION, opened by tested-up-to.yml. It merges once CI passes, and the merge syncs the readme to the WordPress.org trunk. Shipping a new plugin version still requires a git tag."
           fi
-          gh pr merge "$branch" --auto --merge --delete-branch
+          gh pr merge "$branch" --auto --merge
