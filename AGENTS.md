@@ -60,7 +60,7 @@ Versions are published to WordPress.org by CI, not manually:
 - Push to `master` → `on-master-asset-update.yml` syncs `readme.txt` and `.wordpress-org/` assets to SVN trunk. It does **not** sync plugin code.
 - Push a git tag → `on-tag-deploy.yml` deploys that tag as a new plugin release. **A new version only ships when a tag is created.**
 
-Because only a tag deploys code, `master` normally carries plugin code the trunk has not received. The asset-update action treats that as a reason to abort (`🛑 Other files have been modified; changes not deployed`), so both workflows that call it set `IGNORE_OTHER_FILES: true`. Without it, readme updates stay blocked for the entire gap between merging a code change and tagging a release.
+Because only a tag deploys code, `master` normally carries plugin code the trunk has not received. The asset-update action treats that as a reason to abort (`🛑 Other files have been modified; changes not deployed`), so `on-master-asset-update.yml`, the workflow that calls it, sets `IGNORE_OTHER_FILES: true`. Without it, readme updates stay blocked for the entire gap between merging a code change and tagging a release.
 
 So a release change means updating, in lockstep: the `Version:` header in `hide-trackbacks.php`, `Stable tag:` in `readme.txt`, a new `== Changelog ==` entry, and then a matching git tag.
 
@@ -73,7 +73,7 @@ Two rules keep that safe, and they pull in opposite directions:
 
 `release.yml` gets past this with a `RELEASE_TOKEN` secret: a fine-grained PAT (`Contents: read and write`) whose owner is a repository admin. Branch protection here has `enforce_admins` disabled, so an admin's push is exempt from the `test` check. A ruleset with the `github-actions` app as a bypass actor is *not* an option — GitHub only accepts app bypass actors on organisation-owned repositories, and this repository belongs to a user. The workflow checks the secret exists before deploying, so a missing token cannot leave a release published but unrecorded.
 
-Note which token pushes what: the release commit goes up with the PAT, the tag with `GITHUB_TOKEN`. That is deliberate — a PAT-pushed tag *does* start workflow runs, so it would fire `on-tag-deploy.yml` into a second deploy of a version already in SVN. `ci.yml` provides `test` as an aggregate over the real jobs so the requirement is satisfiable for pull requests.
+Note which token pushes what: the release commit goes up with the PAT, the tag with `GITHUB_TOKEN`. That is deliberate — a PAT-pushed tag *does* start workflow runs, so it would fire `on-tag-deploy.yml` into a second deploy of a version already in SVN. `ci.yml` provides `test` as an aggregate over the real jobs so the requirement is satisfiable for pull requests that a person or a PAT opens. A pull request that `GITHUB_TOKEN` opens never gets the check.
 
 **In practice, do not do any of this by hand — run the `Release` workflow** (`release.yml`, Actions tab → Release → Run workflow) with the version number. It encodes every rule below: it refuses a version with no changelog entry or an existing tag, bumps both lines together, deploys, then commits and tags. It takes a `dry_run` option that rehearses without publishing or pushing. It deploys *before* touching git, so a failure leaves nothing half-done and the run can just be repeated. Note it deploys inline rather than relying on `on-tag-deploy.yml`, because a tag pushed with `GITHUB_TOKEN` does not start workflow runs.
 
