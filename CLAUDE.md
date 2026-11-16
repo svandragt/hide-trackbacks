@@ -30,11 +30,11 @@ while IFS= read -r p || [ -n "$p" ]; do case "$p" in ''|\#*) continue ;; esac; \
   rm -rf "build/hide-trackbacks/${p#/}"; done < .distignore
 ```
 
-`tested-up-to.yml` runs weekly, bumping `Tested up to:` in `readme.txt` from api.wordpress.org. It opens a pull request, merges it, and syncs to WordPress.org in a single unattended run. Plugins untested against recent major releases get de-emphasised in the directory.
+`tested-up-to.yml` runs weekly, bumping `Tested up to:` in `readme.txt` from api.wordpress.org. It opens a pull request and merges it in a single unattended run; the merge fires `on-master-asset-update.yml`, which syncs the readme to WordPress.org. Plugins untested against recent major releases get de-emphasised in the directory.
 
 Two constraints explain why it looks the way it does, and both bite any future automation here:
 
-- **`GITHUB_TOKEN` activity does not start new workflow runs.** No checks report on a pull request the workflow opened, so `gh pr merge --auto` would queue behind required checks that never arrive; and the merge does not fire `on-master-asset-update.yml`, so the workflow pushes to the trunk itself. Without that, a bump lands in git and never reaches the plugin directory.
+- **`GITHUB_TOKEN` activity does not start new workflow runs.** The required `test` check never reports on a pull request the workflow opened, so a plain merge is refused and `gh pr merge --auto` would wait forever. The workflow merges with `RELEASE_TOKEN` and `--admin` instead (see the release section below). That token does start workflow runs, so the merge fires `on-master-asset-update.yml`, which syncs the readme to the trunk.
 - **Merge method.** It uses `--merge`, matching `dependabot-auto-merge.yml`, so it relies on a method already known to be enabled on the repository.
 
 ## Architecture
