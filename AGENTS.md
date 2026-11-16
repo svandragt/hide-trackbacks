@@ -30,11 +30,11 @@ while IFS= read -r p || [ -n "$p" ]; do case "$p" in ''|\#*) continue ;; esac; \
   rm -rf "build/hide-trackbacks/${p#/}"; done < .distignore
 ```
 
-`tested-up-to.yml` runs weekly, bumping `Tested up to:` in `readme.txt` from api.wordpress.org. It opens a pull request and merges it in a single unattended run; the merge fires `on-master-asset-update.yml`, which syncs the readme to WordPress.org. Plugins untested against recent major releases get de-emphasised in the directory.
+`tested-up-to.yml` runs weekly, bumping `Tested up to:` in `readme.txt` from api.wordpress.org. It opens a pull request with auto-merge on, so the bump merges once CI passes; the merge fires `on-master-asset-update.yml`, which syncs the readme to WordPress.org. Plugins untested against recent major releases get de-emphasised in the directory.
 
 Two constraints explain why it looks the way it does, and both bite any future automation here:
 
-- **`GITHUB_TOKEN` activity does not start new workflow runs.** The required `test` check never reports on a pull request the workflow opened, so a plain merge is refused and `gh pr merge --auto` would wait forever. The workflow merges with `RELEASE_TOKEN` and `--admin` instead (see the release section below). That token does start workflow runs, so the merge fires `on-master-asset-update.yml`, which syncs the readme to the trunk.
+- **`GITHUB_TOKEN` activity does not start new workflow runs.** A branch it pushes never gets the required `test` check, and a merge it makes never fires `on-master-asset-update.yml`. The workflow therefore pushes the branch and enables auto-merge with `RELEASE_TOKEN` (see the release section below), so CI runs on the bump and the merge syncs the readme to the trunk.
 - **Merge method.** It uses `--merge`, matching `dependabot-auto-merge.yml`, so it relies on a method already known to be enabled on the repository.
 
 ## Architecture
@@ -71,7 +71,7 @@ Two rules keep that safe, and they pull in opposite directions:
 
 ⚠️ **`master` is a protected branch requiring a status check named `test`, which `GITHUB_TOKEN` cannot satisfy.** Left alone, the `Release` workflow's deploy step succeeds while its commit-and-tag step is rejected, leaving WordPress.org released and git behind — dangerous, because `master`'s `Stable tag` then gets synced to the trunk on the next push and can roll users back to the previous version.
 
-`release.yml` gets past this with a `RELEASE_TOKEN` secret: a fine-grained PAT (`Contents: read and write`) whose owner is a repository admin. Branch protection here has `enforce_admins` disabled, so an admin's push is exempt from the `test` check. A ruleset with the `github-actions` app as a bypass actor is *not* an option — GitHub only accepts app bypass actors on organisation-owned repositories, and this repository belongs to a user. The workflow checks the secret exists before deploying, so a missing token cannot leave a release published but unrecorded.
+`release.yml` gets past this with a `RELEASE_TOKEN` secret: a fine-grained PAT (`Contents` and `Pull requests`: read and write; `tested-up-to.yml` uses it to open and auto-merge pull requests) whose owner is a repository admin. Branch protection here has `enforce_admins` disabled, so an admin's push is exempt from the `test` check. A ruleset with the `github-actions` app as a bypass actor is *not* an option — GitHub only accepts app bypass actors on organisation-owned repositories, and this repository belongs to a user. The workflow checks the secret exists before deploying, so a missing token cannot leave a release published but unrecorded.
 
 Note which token pushes what: the release commit goes up with the PAT, the tag with `GITHUB_TOKEN`. That is deliberate — a PAT-pushed tag *does* start workflow runs, so it would fire `on-tag-deploy.yml` into a second deploy of a version already in SVN. `ci.yml` provides `test` as an aggregate over the real jobs so the requirement is satisfiable for pull requests that a person or a PAT opens. A pull request that `GITHUB_TOKEN` opens never gets the check.
 
