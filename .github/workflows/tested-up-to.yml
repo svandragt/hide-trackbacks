@@ -2,8 +2,8 @@ name: Bump tested WordPress version
 
 # WordPress.org de-emphasises plugins that are not tested against recent major
 # releases, so this is the one piece of upkeep that has a visible consequence.
-# Fully hands-off: it opens a pull request for the audit trail, merges it, and
-# syncs the result to the plugin directory without anyone touching it.
+# Fully hands-off: it opens a pull request for the audit trail that merges once
+# CI passes; the merge syncs the result to the plugin directory without anyone touching it.
 #
 # Deliberately dependency-free. The previous attempt at this used an action that
 # required npm dependency updates, which this plugin does not have.
@@ -25,12 +25,24 @@ concurrency:
 
 jobs:
   bump:
-    name: Bump readme and sync to WordPress.org
+    name: Bump readme and open pull request
     runs-on: ubuntu-latest
     steps:
+      - name: Check RELEASE_TOKEN is set
+        env:
+          HAS_TOKEN: ${{ secrets.RELEASE_TOKEN != '' }}
+        run: |
+          if [ "$HAS_TOKEN" != "true" ]; then
+            echo "::error::Secret RELEASE_TOKEN is not set. Add a PAT with Contents and Pull requests: read and write."
+            exit 1
+          fi
+
+      # The branch is pushed with RELEASE_TOKEN because a GITHUB_TOKEN push starts
+      # no workflow runs, so ci.yml would never report the required 'test' check.
       - uses: actions/checkout@v7
         with:
           ref: master
+          token: ${{ secrets.RELEASE_TOKEN }}
 
       - name: Look up the current WordPress version
         id: wp
@@ -62,17 +74,17 @@ jobs:
           sed -i "s/^Tested up to:.*/Tested up to: $VERSION/" readme.txt
           echo "changed=true" >> "$GITHUB_OUTPUT"
 
-      # Opened and merged in the same run, rather than left to GitHub's auto-merge.
-      # A pull request created with GITHUB_TOKEN does not start workflow runs, so no
-      # checks ever report on it - `gh pr merge --auto` would queue behind required
-      # checks that never arrive and sit there indefinitely. Merging here keeps the
-      # pull request as a record while guaranteeing the run either completes the whole
-      # job or fails visibly. --merge (not --squash) matches dependabot-auto-merge.yml,
-      # so it uses a merge method already known to be enabled on this repository.
-      - name: Open and merge the bump pull request
+      # The pull request records the bump; auto-merge lands it once ci.yml passes,
+      # so Plugin Check sees the edited readme. Auto-merge is enabled with
+      # RELEASE_TOKEN so the merge starts on-master-asset-update.yml, which syncs
+      # the readme to the WordPress.org trunk; a GITHUB_TOKEN merge would start
+      # nothing. --merge (not --squash) matches dependabot-auto-merge.yml.
+      # The force push and PR reuse let a re-run recover from a failed earlier run,
+      # which otherwise leaves the branch behind and rejects every later push.
+      - name: Open the bump pull request and enable auto-merge
         if: steps.bump.outputs.changed == 'true'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
           VERSION: ${{ steps.wp.outputs.version }}
         run: |
           set -euo pipefail
@@ -81,29 +93,12 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git checkout -b "$branch"
           git commit -am "chore: tested up to WordPress $VERSION"
-          git push -u origin "$branch"
-          gh pr create \
-            --base master \
-            --head "$branch" \
-            --title "Update tested WordPress version to $VERSION" \
-            --body "Automated bump of the 'Tested up to' field in readme.txt to WordPress $VERSION. Opened, merged and synced to the WordPress.org trunk by tested-up-to.yml. Shipping a new plugin version still requires a git tag."
-          gh pr merge "$branch" --merge
-          # Leave the workspace on the merged master, which is what gets synced below.
-          git checkout master
-          git fetch origin master
-          git reset --hard origin/master
-          git push origin --delete "$branch"
-
-      # A merge performed with GITHUB_TOKEN does not start new workflow runs, so
-      # on-master-asset-update.yml will NOT fire for the merge above. Sync the readme
-      # to the WordPress.org trunk here instead - without this the bump lands in git
-      # and never reaches the plugin directory, which is the whole point.
-      - name: Push readme and assets to WordPress.org
-        if: steps.bump.outputs.changed == 'true'
-        uses: 10up/action-wordpress-plugin-asset-update@stable
-        env:
-          SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
-          SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
-          # Required, or this step fails for every week that master carries plugin
-          # code the trunk has not received yet. See on-master-asset-update.yml.
-          IGNORE_OTHER_FILES: true
+          git push --force -u origin "$branch"
+          if [ "$(gh pr list --head "$branch" --state open --json number -q length)" = "0" ]; then
+            gh pr create \
+              --base master \
+              --head "$branch" \
+              --title "Update tested WordPress version to $VERSION" \
+              --body "Automated bump of the 'Tested up to' field in readme.txt to WordPress $VERSION, opened by tested-up-to.yml. It merges once CI passes, and the merge syncs the readme to the WordPress.org trunk. Shipping a new plugin version still requires a git tag."
+          fi
+          gh pr merge "$branch" --auto --merge
